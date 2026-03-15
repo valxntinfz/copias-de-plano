@@ -395,7 +395,7 @@
       if (hoja === 'encurso') {
         const clase = BADGE[t.estado] || ''
         cuerpo.innerHTML += `
-            <tr onclick="abrirDetalle(${JSON.stringify(t).replace(/"/g, '&quot;')}, false)">
+            <tr onclick="abrirDetalle(${JSON.stringify(t).replace(/"/g, '&quot;')}, false, 'encurso')">
                 <td><strong>${t.vtu || '-'}</strong></td>
                 <td>${t.ctaCte || '-'}</td>
                 <td>${t.solicitante || '-'}</td>
@@ -411,7 +411,7 @@
         const badgeClass = hoja === 'finalizados' ? 'badge-fin' : 'badge-rec'
         const badgeTexto = hoja === 'finalizados' ? 'Finalizado' : 'Rechazado'
         cuerpo.innerHTML += `
-            <tr onclick="abrirDetalle(${JSON.stringify(t).replace(/"/g, '&quot;')}, true)">
+            <tr onclick="abrirDetalle(${JSON.stringify(t).replace(/"/g, '&quot;')}, true, '${hoja}')">
                 <td><strong>${t.vtu || '-'}</strong></td>
                 <td>${t.ctaCte || '-'}</td>
                 <td>${t.solicitante || '-'}</td>
