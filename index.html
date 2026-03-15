@@ -440,7 +440,7 @@
     document.getElementById('overlay').classList.add('activo')
   }
 
-  function abrirDetalle(t, soloLectura) {
+  function abrirDetalle(t, soloLectura, hojaEncontrada = 'encurso') {
     tramiteActual = t
     document.getElementById('f-vtu').value           = t.vtu || ''
     document.getElementById('f-ctaCte').value        = t.ctaCte || ''
@@ -451,7 +451,11 @@
     document.getElementById('f-ubicacion').value     = t.ubicacion || ''
     document.getElementById('f-trmvl').value         = t.trmvl || ''
     document.getElementById('f-estado').value        = t.estado || ''
-    document.getElementById('modal-titulo').textContent = 'Trámite N° ' + (t.vtu || '')
+    const estadoLabel = t.estado ? `<span class="badge ${BADGE[t.estado] || ''}" style="margin-left:10px;font-size:12px">${t.estado}</span>` 
+    : hojaEncontrada === 'finalizados' ? '<span class="badge badge-fin" style="margin-left:10px;font-size:12px">Finalizado</span>'
+    : hojaEncontrada === 'rechazados' ? '<span class="badge badge-rec" style="margin-left:10px;font-size:12px">Rechazado</span>'
+    : ''
+    document.getElementById('modal-titulo').innerHTML = 'Trámite N° ' + (t.vtu || '') + estadoLabel
 
     if (soloLectura) {
       setFormularioEditable(false)
@@ -543,6 +547,24 @@
   const nro = document.getElementById('buscador').value.trim()
   if (!nro) return
 
+  // Primero busca en los datos ya cargados en pantalla
+  const cuerpos = [
+    { id: 'cuerpo-encurso', hoja: 'encurso' },
+    { id: 'cuerpo-finalizados', hoja: 'finalizados' },
+    { id: 'cuerpo-rechazados', hoja: 'rechazados' }
+  ]
+
+  for (const { id, hoja } of cuerpos) {
+    const filas = document.getElementById(id).querySelectorAll('tr')
+    for (const fila of filas) {
+      if (fila.cells[0] && fila.cells[0].textContent.trim() === nro) {
+        fila.click()
+        return
+      }
+    }
+  }
+
+  // Si no está en pantalla, busca en el servidor
   const hojas = ['encurso', 'finalizados', 'rechazados']
   let encontrado = null
   let hojaEncontrada = null
@@ -567,7 +589,7 @@
   }
 
   const soloLectura = hojaEncontrada !== 'encurso'
-  abrirDetalle(encontrado, soloLectura)
+  abrirDetalle(encontrado, soloLectura, hojaEncontrada)
 }
 
   function recargar() {
