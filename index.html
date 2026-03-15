@@ -513,8 +513,13 @@
   }
 
   async function enviar(datos) {
-    const params = new URLSearchParams(datos).toString()
-    await fetch(URL_SCRIPT + '?' + params)
+  await fetch(URL_SCRIPT, {
+    method: 'POST',
+    headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams(datos)
+    });
   }
 
   function leerFormulario() {
@@ -543,54 +548,53 @@
     document.getElementById('overlay').classList.remove('activo')
   }
 
-  async function buscarTramite() {
-  const nro = document.getElementById('buscador').value.trim()
-  if (!nro) return
+async function buscarTramite() {
+  const nro = document.getElementById('buscador').value.trim();
+  if (!nro) return;
 
-  // Primero busca en los datos ya cargados en pantalla
+  // 1. Primero busca en lo que ya está cargado en las tablas de la pantalla
   const cuerpos = [
     { id: 'cuerpo-encurso', hoja: 'encurso' },
     { id: 'cuerpo-finalizados', hoja: 'finalizados' },
     { id: 'cuerpo-rechazados', hoja: 'rechazados' }
-  ]
+  ];
 
-  for (const { id, hoja } of cuerpos) {
-    const filas = document.getElementById(id).querySelectorAll('tr')
+  for (const { id } of cuerpos) {
+    const cuerpoHtml = document.getElementById(id);
+    if (!cuerpoHtml) continue;
+    
+    const filas = cuerpoHtml.querySelectorAll('tr');
     for (const fila of filas) {
       if (fila.cells[0] && fila.cells[0].textContent.trim() === nro) {
-        fila.click()
-        return
+        fila.click();
+        document.getElementById('buscador').value = '';
+        return;
       }
     }
   }
 
-  // Si no está en pantalla, busca en el servidor
-  const hojas = ['encurso', 'finalizados', 'rechazados']
-  let encontrado = null
-  let hojaEncontrada = null
+  // 2. Si no está en pantalla, le pregunta al backend (Apps Script)
+  try {
+    const btnBuscar = document.querySelector('button[onclick="buscarTramite()"]');
+    const textoOriginal = btnBuscar.textContent;
+    btnBuscar.textContent = '...'; // Efecto visual de carga
+    
+    // Llamamos a la nueva acción "buscarUnico" por GET
+    const res = await fetch(`${URL_SCRIPT}?accion=buscarUnico&vtu=${nro}`);
+    const data = await res.json();
+    
+    btnBuscar.textContent = textoOriginal;
 
-  for (const hoja of hojas) {
-    const accion = hoja === 'encurso' ? 'obtenerEncurso'
-                 : hoja === 'finalizados' ? 'obtenerFinalizados'
-                 : 'obtenerRechazados'
-    const res = await fetch(URL_SCRIPT + '?accion=' + accion)
-    const data = await res.json()
-    const tramite = data.find(t => String(t.vtu) === String(nro))
-    if (tramite) {
-      encontrado = tramite
-      hojaEncontrada = hoja
-      break
+    if (data.encontrado) {
+      const soloLectura = data.tramite.hojaOrigen !== 'encurso';
+      document.getElementById('buscador').value = '';
+      abrirDetalle(data.tramite, soloLectura, data.tramite.hojaOrigen);
+    } else {
+      mostrarToast(`No se encontró el N° VTU: ${nro}`, true);
     }
+  } catch (error) {
+    mostrarToast('Error de conexión al buscar', true);
   }
-
-  if (!encontrado) {
-    alert('No se encontró ningún trámite con el N° VTU ' + nro)
-    return
-  }
-
-  const soloLectura = hojaEncontrada !== 'encurso'
-  document.getElementById('buscador').value = ''
-  abrirDetalle(encontrado, soloLectura, hojaEncontrada)
 }
 
   function recargar() {
