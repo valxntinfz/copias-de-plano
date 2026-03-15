@@ -427,14 +427,14 @@
   }
 
   // ── MODAL ─────────────────────────────────────────────
-  function abrirNuevo() {
+ function abrirNuevo() {
     tramiteActual = null
     limpiarFormulario()
     setFormularioEditable(true)
     document.getElementById('campo-estado').style.display = 'block'
     document.getElementById('modal-titulo').textContent = 'Nuevo trámite'
     document.getElementById('modal-botones').innerHTML = `
-      <button class="btn btn-verde" onclick="guardarNuevo()">Guardar</button>
+      <button class="btn btn-verde" id="btn-guardar" onclick="guardarNuevo()">Guardar</button>
       <button class="btn btn-gris"  onclick="cerrarModal()">Cancelar</button>
     `
     document.getElementById('overlay').classList.add('activo')
@@ -486,12 +486,29 @@
 
   // ── ACCIONES ──────────────────────────────────────────
   async function guardarNuevo() {
-    const datos = leerFormulario()
-    datos.accion = 'nuevoTramite'
-    await enviar(datos)
-    cerrarModal()
-    mostrarToast('Trámite guardado correctamente')
-    recargar()
+    // Buscamos el botón y lo apagamos para evitar el doble clic
+    const btn = document.getElementById('btn-guardar');
+    btn.disabled = true;
+    btn.textContent = 'Guardando...';
+
+    try {
+      // Mandamos los datos
+      const datos = leerFormulario()
+      datos.accion = 'nuevoTramite'
+      await enviar(datos)
+      
+      cerrarModal()
+      mostrarToast('Trámite guardado correctamente')
+      recargar()
+    } catch (error) {
+      mostrarToast('Error al guardar', true)
+    } finally {
+      // Volvemos a prender el botón por las dudas
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = 'Guardar';
+      }
+    }
   }
 
   async function guardarEdicion() {
