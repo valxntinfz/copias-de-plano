@@ -207,6 +207,13 @@
   <button class="pestana activa" onclick="cambiarPestana('encurso', this)">En curso</button>
   <button class="pestana" onclick="cambiarPestana('finalizados', this)">Finalizados</button>
   <button class="pestana" onclick="cambiarPestana('rechazados', this)">Rechazados</button>
+  <div style="margin-left:auto; display:flex; align-items:center; gap:8px; padding-bottom:4px;">
+    <input type="text" id="buscador" placeholder="Buscar N° VTU..." 
+      style="padding:6px 12px; border:1px solid #ddd; border-radius:6px; font-size:13px; width:180px;"
+      onkeydown="if(event.key==='Enter') buscarTramite()">
+    <button class="btn btn-nuevo" onclick="buscarTramite()" 
+      style="background:#1a3a5c; color:white; padding:6px 14px;">Buscar</button>
+  </div>
 </div>
 
 <div class="contenedor">
@@ -531,6 +538,37 @@
   function cerrarModal() {
     document.getElementById('overlay').classList.remove('activo')
   }
+
+  async function buscarTramite() {
+  const nro = document.getElementById('buscador').value.trim()
+  if (!nro) return
+
+  const hojas = ['encurso', 'finalizados', 'rechazados']
+  let encontrado = null
+  let hojaEncontrada = null
+
+  for (const hoja of hojas) {
+    const accion = hoja === 'encurso' ? 'obtenerEncurso'
+                 : hoja === 'finalizados' ? 'obtenerFinalizados'
+                 : 'obtenerRechazados'
+    const res = await fetch(URL_SCRIPT + '?accion=' + accion)
+    const data = await res.json()
+    const tramite = data.find(t => String(t.vtu) === String(nro))
+    if (tramite) {
+      encontrado = tramite
+      hojaEncontrada = hoja
+      break
+    }
+  }
+
+  if (!encontrado) {
+    alert('No se encontró ningún trámite con el N° VTU ' + nro)
+    return
+  }
+
+  const soloLectura = hojaEncontrada !== 'encurso'
+  abrirDetalle(encontrado, soloLectura)
+}
 
   function recargar() {
     document.getElementById('cargando').style.display = 'block'
