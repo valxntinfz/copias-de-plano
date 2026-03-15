@@ -513,13 +513,8 @@
   }
 
   async function enviar(datos) {
-  await fetch(URL_SCRIPT, {
-    method: 'POST',
-    headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: new URLSearchParams(datos)
-    });
+    const params = new URLSearchParams(datos).toString();
+    await fetch(URL_SCRIPT + '?' + params);
   }
 
   function leerFormulario() {
