@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Copias de Plano - VL</title>
+  <link rel="icon" type="image/jpeg" href="iconoplanos.jpg">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f4f4;
+      color: #333;
+    }
+
+    header {
+      background: #1a3a5c;
+      color: white;
+      padding: 16px 32px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    header h1 { font-size: 20px; font-weight: 600; margin-right: 16px; }
+
+    .btn {
+      padding: 8px 18px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .btn-nuevo  { background: #fff; color: #1a3a5c; }
+    .btn-verde  { background: #1D9E75; color: white; }
+    .btn-rojo   { background: #D85A30; color: white; }
+    .btn-azul   { background: #1a3a5c; color: white; }
+    .btn-gris   { background: #919090; color: #333; }
+
+    /* PESTAÑAS */
+    .pestanas {
+      display: flex;
+      gap: 4px;
+      padding: 16px 32px 0;
+      border-bottom: 2px solid #ddd;
+      background: #fff;
+    }
+
+    .pestana {
+      padding: 10px 22px;
+      border: none;
+      background: none;
+      font-size: 14px;
+      cursor: pointer;
+      border-bottom: 3px solid transparent;
+      color: #888;
+      font-weight: 500;
+      margin-bottom: -2px;
+    }
+
+    .pestana.activa {
+      color: #1a3a5c;
+      border-bottom: 3px solid #1a3a5c;
+    }
+
+    .contenedor { padding: 24px 32px; overflow-x: auto; }
+
+    .barra-superior {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    table {
+      width: 100%;
+      min-width: 900px;
+      border-collapse: collapse;
+      background: white;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+    }
+
+    th {
+      background: #f0f0f0;
+      text-align: left;
+      padding: 12px 14px;
+      font-size: 13px;
+      color: #555;
+    }
+
+    td {
+      padding: 11px 14px;
+      font-size: 13px;
+      border-bottom: 1px solid #eee;
+    }
+
+    tr:hover td { background: #f9f9f9; cursor: pointer; }
+    td { border-bottom: 1.5px solid #2a6496 !important; }
+    th { border-bottom: 2px solid #1a3a5c !important; }
+
+    .badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+
+    .b-docrej  { background: #FAECE7; color: #993C1D; }
+    .b-deuda   { background: #FCEBEB; color: #A32D2D; }
+    .b-ultima  { background: #FAEEDA; color: #854F0B; }
+    .b-firmar  { background: #E1F5EE; color: #0F6E56; }
+    .b-vtu     { background: #E6F1FB; color: #185FA5; }
+    .b-trmvl   { background: #EEEDFE; color: #534AB7; }
+
+    .badge-fin { background: #E1F5EE; color: #0F6E56; }
+    .badge-rec { background: #FCEBEB; color: #A32D2D; }
+
+    /* MODAL */
+    .overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.45);
+      justify-content: center;
+      align-items: center;
+      z-index: 100;
+    }
+
+    .overlay.activo { display: flex; }
+
+    .modal {
+      background: white;
+      border-radius: 12px;
+      padding: 28px;
+      width: 560px;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+
+    .modal h2 { font-size: 17px; margin-bottom: 20px; color: #1a3a5c; }
+
+    .campo { margin-bottom: 14px; }
+    .campo label { display: block; font-size: 12px; color: #666; margin-bottom: 4px; }
+    .campo input, .campo select, .campo textarea {
+      width: 100%;
+      padding: 8px 10px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 13px;
+    }
+    .campo textarea { height: 72px; resize: vertical; }
+    .campo input:disabled, .campo select:disabled, .campo textarea:disabled {
+      background: #f9f9f9;
+      color: #666;
+    }
+
+    .modal-botones {
+      display: flex;
+      gap: 10px;
+      margin-top: 20px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .cargando {
+      text-align: center;
+      padding: 40px;
+      color: #888;
+      font-size: 14px;
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 32px;
+      right: 32px;
+      background: #1D9E75;
+      color: white;
+      padding: 12px 20px;
+      border-radius: 8px;
+      font-size: 14px;
+      display: none;
+      z-index: 200;
+    }
+
+    .toast.error { background: #D85A30; }
+    .toast.visible { display: block; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div style="display:flex; align-items:center; gap:16px;">
+    <h1>Copias de Plano</h1>
+    <button class="btn btn-nuevo" id="btn-nuevo" onclick="abrirNuevo()">+ Nuevo trámite</button>
+  </div>
+</header>
+
+<!-- PESTAÑAS -->
+<div class="pestanas">
+  <button class="pestana activa" onclick="cambiarPestana('encurso', this)">En curso</button>
+  <button class="pestana" onclick="cambiarPestana('finalizados', this)">Finalizados</button>
+  <button class="pestana" onclick="cambiarPestana('rechazados', this)">Rechazados</button>
+</div>
+
+<div class="contenedor">
+  <div id="cargando" class="cargando">Cargando trámites...</div>
+
+  <!-- TABLA EN CURSO -->
+  <div id="vista-encurso" style="display:none">
+    <table>
+      <thead>
+        <tr>
+          <th>N° VTU</th>
+          <th>N° CTA CTE</th>
+          <th>Solicitante</th>
+          <th>Destino</th>
+          <th>Observaciones</th>
+          <th>Expediente</th>
+          <th>Ubicación expediente</th>
+          <th>N° TRMVL Mesa 4</th>
+          <th>Estado</th>
+          <th>Fecha de carga</th>
+        </tr>
+      </thead>
+      <tbody id="cuerpo-encurso"></tbody>
+    </table>
+  </div>
+
+  <!-- TABLA FINALIZADOS -->
+  <div id="vista-finalizados" style="display:none">
+    <table>
+      <thead>
+        <tr>
+          <th>N° VTU</th>
+          <th>N° CTA CTE</th>
+          <th>Solicitante</th>
+          <th>Destino</th>
+          <th>Observaciones</th>
+          <th>Expediente</th>
+          <th>Ubicación expediente</th>
+          <th>N° TRMVL Mesa 4</th>
+          <th>Fecha de carga</th>
+        </tr>
+      </thead>
+      <tbody id="cuerpo-finalizados"></tbody>
+    </table>
+  </div>
+
+  <!-- TABLA RECHAZADOS -->
+  <div id="vista-rechazados" style="display:none">
+    <table>
+      <thead>
+        <tr>
+           <th>N° VTU</th>
+          <th>N° CTA CTE</th>
+          <th>Solicitante</th>
+          <th>Destino</th>
+          <th>Observaciones</th>
+          <th>Expediente</th>
+          <th>Ubicación expediente</th>
+          <th>N° TRMVL Mesa 4</th>
+          <th>Fecha de carga</th>
+        </tr>
+      </thead>
+      <tbody id="cuerpo-rechazados"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <h2 id="modal-titulo">Nuevo trámite</h2>
+
+    <div class="campo">
+      <label>N° VTU</label>
+      <input type="text" id="f-vtu">
+    </div>
+    <div class="campo">
+      <label>N° CTA CTE</label>
+      <input type="text" id="f-ctaCte">
+    </div>
+    <div class="campo">
+      <label>Solicitante</label>
+      <input type="text" id="f-solicitante">
+    </div>
+    <div class="campo">
+      <label>Destino</label>
+      <input type="text" id="f-destino">
+    </div>
+    <div class="campo">
+      <label>Observaciones</label>
+      <textarea id="f-observaciones"></textarea>
+    </div>
+    <div class="campo">
+      <label>Expediente</label>
+      <input type="text" id="f-expediente">
+    </div>
+    <div class="campo">
+      <label>Ubicación del expediente</label>
+      <input type="text" id="f-ubicacion">
+    </div>
+    <div class="campo">
+      <label>N° TRMVL Mesa 4</label>
+      <input type="text" id="f-trmvl">
+    </div>
+    <div class="campo" id="campo-estado">
+      <label>Estado</label>
+      <select id="f-estado">
+        <option value="">-- Sin estado --</option>
+        <option value="Documentacion rechazada">Documentación rechazada</option>
+        <option value="Deuda ABL">Deuda ABL</option>
+        <option value="Ultima oportunidad">Última oportunidad</option>
+        <option value="Pase a firmar">Pase a firmar</option>
+        <option value="A firmar VTU">A firmar VTU</option>
+        <option value="Crear TRMVL con memo">Crear TRMVL con memo</option>
+      </select>
+    </div>
+
+    <div class="modal-botones" id="modal-botones"></div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+  const URL_SCRIPT = 'https://script.google.com/macros/s/AKfycby-dJl7IB2UGugrKkkUDH2C8Tv9fwgtEN1QRxnCJ0bVbZ-n5_jKBCIwP3Sqc9ON0vG9/exec'
+
+  const BADGE = {
+    'Documentacion rechazada': 'b-docrej',
+    'Deuda ABL':               'b-deuda',
+    'Ultima oportunidad':      'b-ultima',
+    'Pase a firmar':           'b-firmar',
+    'A firmar VTU':            'b-vtu',
+    'Crear TRMVL con memo':    'b-trmvl'
+  }
+
+  let tramiteActual = null
+  let pestanaActual = 'encurso'
+
+  // ── PESTAÑAS ──────────────────────────────────────────
+  function cambiarPestana(nombre, boton) {
+    pestanaActual = nombre
+    document.querySelectorAll('.pestana').forEach(b => b.classList.remove('activa'))
+    boton.classList.add('activa')
+    document.getElementById('btn-nuevo').style.display = nombre === 'encurso' ? 'block' : 'none'
+    document.getElementById('vista-encurso').style.display    = 'none'
+    document.getElementById('vista-finalizados').style.display = 'none'
+    document.getElementById('vista-rechazados').style.display  = 'none'
+    document.getElementById('cargando').style.display = 'block'
+    cargarTramites(nombre)
+  }
+
+  // ── CARGA DE DATOS ────────────────────────────────────
+  async function cargarTramites(hoja) {
+    const accion = hoja === 'encurso' ? 'obtenerEncurso'
+                 : hoja === 'finalizados' ? 'obtenerFinalizados'
+                 : 'obtenerRechazados'
+    try {
+      const res = await fetch(URL_SCRIPT + '?accion=' + accion)
+      const data = await res.json()
+      mostrarTabla(hoja, data)
+    } catch(e) {
+      document.getElementById('cargando').textContent = 'Error al cargar. Verificá la URL del script.'
+    }
+  }
+
+  function mostrarTabla(hoja, tramites) {
+    document.getElementById('cargando').style.display = 'none'
+    document.getElementById('vista-' + hoja).style.display = 'block'
+    const cuerpo = document.getElementById('cuerpo-' + hoja)
+    cuerpo.innerHTML = ''
+
+    if (tramites.length === 0) {
+      cuerpo.innerHTML = `<tr><td colspan="10" style="text-align:center;color:#aaa;padding:30px">No hay trámites</td></tr>`
+      return
+    }
+
+    tramites.reverse().forEach(t => {
+      if (hoja === 'encurso') {
+        const clase = BADGE[t.estado] || ''
+        cuerpo.innerHTML += `
+            <tr onclick="abrirDetalle(${JSON.stringify(t).replace(/"/g, '&quot;')}, false)">
+                <td><strong>${t.vtu || '-'}</strong></td>
+                <td>${t.ctaCte || '-'}</td>
+                <td>${t.solicitante || '-'}</td>
+                <td>${t.destino || '-'}</td>
+                <td>${t.observaciones || '-'}</td>
+                <td>${t.expediente || '-'}</td>
+                <td>${t.ubicacion || '-'}</td>
+                <td>${t.trmvl || '-'}</td>
+                <td><span class="badge ${clase}">${t.estado || '-'}</span></td>
+                <td>${t.fecha || '-'}</td>
+            </tr>`
+      } else {
+        const badgeClass = hoja === 'finalizados' ? 'badge-fin' : 'badge-rec'
+        const badgeTexto = hoja === 'finalizados' ? 'Finalizado' : 'Rechazado'
+        cuerpo.innerHTML += `
+            <tr onclick="abrirDetalle(${JSON.stringify(t).replace(/"/g, '&quot;')}, true)">
+                <td><strong>${t.vtu || '-'}</strong></td>
+                <td>${t.ctaCte || '-'}</td>
+                <td>${t.solicitante || '-'}</td>
+                <td>${t.destino || '-'}</td>
+                <td>${t.observaciones || '-'}</td>
+                <td>${t.expediente || '-'}</td>
+                <td>${t.ubicacion || '-'}</td>
+                <td>${t.trmvl || '-'}</td>
+                <td>${t.fecha || '-'}</td>
+            </tr>`
+      }
+    })
+  }
+
+  // ── MODAL ─────────────────────────────────────────────
+  function abrirNuevo() {
+    tramiteActual = null
+    limpiarFormulario()
+    setFormularioEditable(true)
+    document.getElementById('campo-estado').style.display = 'block'
+    document.getElementById('modal-titulo').textContent = 'Nuevo trámite'
+    document.getElementById('modal-botones').innerHTML = `
+      <button class="btn btn-verde" onclick="guardarNuevo()">Guardar</button>
+      <button class="btn btn-gris"  onclick="cerrarModal()">Cancelar</button>
+    `
+    document.getElementById('overlay').classList.add('activo')
+  }
+
+  function abrirDetalle(t, soloLectura) {
+    tramiteActual = t
+    document.getElementById('f-vtu').value           = t.vtu || ''
+    document.getElementById('f-ctaCte').value        = t.ctaCte || ''
+    document.getElementById('f-solicitante').value   = t.solicitante || ''
+    document.getElementById('f-destino').value       = t.destino || ''
+    document.getElementById('f-observaciones').value = t.observaciones || ''
+    document.getElementById('f-expediente').value    = t.expediente || ''
+    document.getElementById('f-ubicacion').value     = t.ubicacion || ''
+    document.getElementById('f-trmvl').value         = t.trmvl || ''
+    document.getElementById('f-estado').value        = t.estado || ''
+    document.getElementById('modal-titulo').textContent = 'Trámite N° ' + (t.vtu || '')
+
+    if (soloLectura) {
+      setFormularioEditable(false)
+      document.getElementById('campo-estado').style.display = 'none'
+      document.getElementById('modal-botones').innerHTML = `
+        <button class="btn btn-gris" onclick="cerrarModal()">Cerrar</button>
+      `
+    } else {
+      setFormularioEditable(true)
+      document.getElementById('campo-estado').style.display = 'block'
+      document.getElementById('modal-botones').innerHTML = `
+        <button class="btn btn-verde" onclick="mover('finalizado')">Finalizado</button>
+        <button class="btn btn-rojo"  onclick="mover('rechazado')">Rechazado</button>
+        <button class="btn btn-azul"  onclick="guardarEdicion()">Guardar cambios</button>
+        <button class="btn btn-gris"  onclick="cerrarModal()">Cancelar</button>
+      `
+    }
+
+    document.getElementById('overlay').classList.add('activo')
+  }
+
+  function setFormularioEditable(editable) {
+    ['f-vtu','f-ctaCte','f-solicitante','f-destino',
+     'f-observaciones','f-expediente','f-ubicacion','f-trmvl','f-estado'].forEach(id => {
+      document.getElementById(id).disabled = !editable
+    })
+  }
+
+  // ── ACCIONES ──────────────────────────────────────────
+  async function guardarNuevo() {
+    const datos = leerFormulario()
+    datos.accion = 'nuevoTramite'
+    await enviar(datos)
+    cerrarModal()
+    mostrarToast('Trámite guardado correctamente')
+    recargar()
+  }
+
+  async function guardarEdicion() {
+    const datos = leerFormulario()
+    datos.accion = 'editarTramite'
+    datos.id = tramiteActual.id
+    await enviar(datos)
+    cerrarModal()
+    mostrarToast('Cambios guardados')
+    recargar()
+  }
+
+  async function mover(destino) {
+    if (!confirm('¿Confirmar que el trámite va a ' + destino + '?')) return
+    await enviar({ accion: 'moverTramite', id: tramiteActual.id, destino })
+    cerrarModal()
+    mostrarToast('Trámite movido a ' + destino)
+    recargar()
+  }
+
+  async function enviar(datos) {
+    await fetch(URL_SCRIPT, {
+      method: 'POST',
+      mode: 'no-cors',
+      body: JSON.stringify(datos)
+    })
+  }
+
+  function leerFormulario() {
+    return {
+      vtu:          document.getElementById('f-vtu').value,
+      ctaCte:       document.getElementById('f-ctaCte').value,
+      solicitante:  document.getElementById('f-solicitante').value,
+      destino:      document.getElementById('f-destino').value,
+      observaciones:document.getElementById('f-observaciones').value,
+      expediente:   document.getElementById('f-expediente').value,
+      ubicacion:    document.getElementById('f-ubicacion').value,
+      trmvl:        document.getElementById('f-trmvl').value,
+      estado:       document.getElementById('f-estado').value
+    }
+  }
+
+  function limpiarFormulario() {
+    ['f-vtu','f-ctaCte','f-solicitante','f-destino',
+     'f-observaciones','f-expediente','f-ubicacion','f-trmvl'].forEach(id => {
+      document.getElementById(id).value = ''
+    })
+    document.getElementById('f-estado').value = ''
+  }
+
+  function cerrarModal() {
+    document.getElementById('overlay').classList.remove('activo')
+  }
+
+  function recargar() {
+    document.getElementById('cargando').style.display = 'block'
+    document.getElementById('vista-' + pestanaActual).style.display = 'none'
+    cargarTramites(pestanaActual)
+  }
+
+  function mostrarToast(mensaje, error = false) {
+    const t = document.getElementById('toast')
+    t.textContent = mensaje
+    t.className = 'toast' + (error ? ' error' : '') + ' visible'
+    setTimeout(() => t.classList.remove('visible'), 3000)
+  }
+
+  document.getElementById('overlay').addEventListener('click', function(e) {
+    if (e.target === this) cerrarModal()
+  })
+
+  cargarTramites('encurso')
+</script>
+
+</body>
+</html>
