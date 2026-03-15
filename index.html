@@ -502,11 +502,8 @@
   }
 
   async function enviar(datos) {
-    await fetch(URL_SCRIPT, {
-      method: 'POST',
-      mode: 'no-cors',
-      body: JSON.stringify(datos)
-    })
+    const params = new URLSearchParams(datos).toString()
+    await fetch(URL_SCRIPT + '?' + params)
   }
 
   function leerFormulario() {
