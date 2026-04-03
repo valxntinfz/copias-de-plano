@@ -396,7 +396,16 @@
     <div class="campo"><label>Destino</label><input type="text" id="f-destino"></div>
     <div class="campo"><label>Observaciones</label><textarea id="f-observaciones"></textarea></div>
     <div class="campo"><label>Expediente</label><input type="text" id="f-expediente"></div>
-    <div class="campo"><label>Ubicación del expediente</label><input type="text" id="f-ubicacion"></div>
+    <div class="campo">
+      <label>Ubicación del expediente</label>
+      <select id="f-ubicacion-sel" onchange="cambiarUbicacion()">
+        <option value="">-- Seleccionar --</option>
+        <option value="ARCHIVO">ARCHIVO</option>
+        <option value="PLANEAMIENTO URBANO">PLANEAMIENTO</option>
+        <option value="OTRO">Otro</option>
+      </select>
+      <input type="text" id="f-ubicacion" placeholder="Especificá dónde..." style="margin-top:6px; display:none">
+    </div>
     <div class="campo"><label>N° TRMVL Mesa 4</label><input type="text" id="f-trmvl"></div>
     <div class="campo" id="campo-estado">
       <label>Estado</label>
@@ -466,7 +475,7 @@
     pestanaActual = nombre
     document.querySelectorAll('.pestana').forEach(b => b.classList.remove('activa'))
     boton.classList.add('activa')
-    document.getElementById('btn-nuevo').style.display = nombre === 'encurso' ? 'block' : 'none'
+    document.getElementById('btn-nuevo').style.display = 'block'
     ;['encurso','finalizados','rechazados'].forEach(h => {
       document.getElementById('vista-' + h).style.display = 'none'
     })
@@ -681,7 +690,23 @@
     document.getElementById('f-destino').value       = t.destino || ''
     document.getElementById('f-observaciones').value = t.observaciones || ''
     document.getElementById('f-expediente').value    = t.expediente || ''
-    document.getElementById('f-ubicacion').value     = t.ubicacion || ''
+      const ubicacionOpciones = ['ARCHIVO', 'PLANEAMIENTO URBANO']
+      const ubicacionVal = t.ubicacion || ''
+      const sel = document.getElementById('f-ubicacion-sel')
+      const inputUbic = document.getElementById('f-ubicacion')
+      if (ubicacionOpciones.includes(ubicacionVal)) {
+        sel.value = ubicacionVal
+        inputUbic.style.display = 'none'
+        inputUbic.value = ubicacionVal
+      } else if (ubicacionVal) {
+        sel.value = 'OTRO'
+        inputUbic.style.display = 'block'
+        inputUbic.value = ubicacionVal
+      } else {
+        sel.value = ''
+        inputUbic.style.display = 'none'
+        inputUbic.value = ''
+      }
     document.getElementById('f-trmvl').value         = t.trmvl || ''
     document.getElementById('f-estado').value        = t.estado || ''
 
@@ -697,8 +722,16 @@
     if (soloLectura) {
       setFormularioEditable(false)
       document.getElementById('campo-estado').style.display = 'none'
-      document.getElementById('modal-botones').innerHTML = `
-        <button class="btn btn-gris" onclick="cerrarModal()">Cerrar</button>`
+
+      const botones = hojaEncontrada === 'finalizados'
+        ? `<button class="btn btn-azul"  onclick="moverDesdeHistorico('finalizados','encurso')">Mover a En curso</button>
+           <button class="btn btn-rojo"  onclick="moverDesdeHistorico('finalizados','rechazados')">Mover a Rechazados</button>
+           <button class="btn btn-gris"  onclick="cerrarModal()">Cerrar</button>`
+        : `<button class="btn btn-azul"  onclick="moverDesdeHistorico('rechazados','encurso')">Mover a En curso</button>
+           <button class="btn btn-verde" onclick="moverDesdeHistorico('rechazados','finalizados')">Mover a Finalizados</button>
+           <button class="btn btn-gris"  onclick="cerrarModal()">Cerrar</button>`
+
+      document.getElementById('modal-botones').innerHTML = botones
     } else {
       setFormularioEditable(true)
       document.getElementById('campo-estado').style.display = 'block'
@@ -713,7 +746,7 @@
 
   function setFormularioEditable(editable) {
     ['f-vtu','f-ctaCte','f-solicitante','f-destino',
-     'f-observaciones','f-expediente','f-ubicacion','f-trmvl','f-estado'].forEach(id => {
+     'f-observaciones','f-expediente','f-ubicacion','f-ubicacion-sel','f-trmvl','f-estado'].forEach(id => {
       document.getElementById(id).disabled = !editable
     })
   }
@@ -724,7 +757,8 @@
     const campos = [
       { id: 'f-vtu', nombre: 'N° VTU' },
       { id: 'f-ctaCte', nombre: 'N° CTA CTE' },
-      { id: 'f-solicitante', nombre: 'Solicitante' }
+      { id: 'f-solicitante', nombre: 'Solicitante' },
+      { id: 'f-estado', nombre: 'Estado' }
     ]
     let valido = true
     campos.forEach(c => {
@@ -759,6 +793,11 @@
 
   async function guardarEdicion() {
     const datos = leerFormulario()
+    const trmvlAnterior = tramiteActual.trmvl || ''
+    if (datos.trmvl.trim() && datos.trmvl.trim() !== trmvlAnterior.trim()) {
+      datos.estado = 'A firmar Mesa4'
+      document.getElementById('f-estado').value = 'A firmar Mesa4'
+    }
     datos.accion = 'editarTramite'
     datos.id = tramiteActual.id
     await enviar(datos)
@@ -801,6 +840,21 @@
       document.getElementById(id).classList.remove('error')
     })
     document.getElementById('f-estado').value = ''
+    document.getElementById('f-ubicacion-sel').value = ''
+    document.getElementById('f-ubicacion').style.display = 'none'
+    document.getElementById('f-ubicacion').value = ''
+  }
+
+  function cambiarUbicacion() {
+    const sel = document.getElementById('f-ubicacion-sel').value
+    const input = document.getElementById('f-ubicacion')
+    if (sel === 'OTRO') {
+      input.style.display = 'block'
+      input.value = ''
+    } else {
+      input.style.display = 'none'
+      input.value = sel
+    }
   }
 
   function cerrarModal() {
@@ -851,6 +905,17 @@
     }
   }
 
+  async function moverDesdeHistorico(origen, destino) {
+    const confirmar = destino === 'encurso' ? 'En curso'
+                    : destino === 'finalizados' ? 'Finalizados'
+                    : 'Rechazados'
+    if (!confirm('¿Mover este trámite a ' + confirmar + '?')) return
+    await enviar({ accion: 'moverDesdeHistorico', id: tramiteActual.id, origen, destino })
+    cerrarModal()
+    mostrarToast('Trámite movido a ' + confirmar)
+    recargar()
+  }
+
   function recargar() {
     sessionStorage.setItem('pestana', pestanaActual)
     sessionStorage.setItem('pagina-encurso', estado.encurso.pagina)
@@ -868,8 +933,12 @@
     setTimeout(() => t.classList.remove('visible'), 3000)
   }
 
-  document.getElementById('overlay').addEventListener('click', function(e) {
-    if (e.target === this) cerrarModal()
+  let clickDentroModal = false
+  document.getElementById('overlay').addEventListener('mousedown', function(e) {
+    clickDentroModal = e.target !== this
+  })
+  document.getElementById('overlay').addEventListener('mouseup', function(e) {
+    if (e.target === this && !clickDentroModal) cerrarModal()
   })
   document.getElementById('overlay-firma').addEventListener('click', function(e) {
     if (e.target === this) cerrarFirma()
